@@ -40,7 +40,8 @@ def playrec_tone(frecuencia, duracion, fs=44100):
     Emite un tono y lo graba.
     """
     sd.default.samplerate = fs #frecuencia de muestreo
-        
+    sd.default.channels = 1,2 #por las dos salidas de audio
+    
     cantidad_de_periodos = duracion*frecuencia
     puntos_por_periodo = int(fs/frecuencia)
     puntos_totales = puntos_por_periodo*cantidad_de_periodos
@@ -63,6 +64,15 @@ def test_playrec_tone():
         print(i)
     return grabacion
 
+def record(duracion, fs=44100):
+    """
+    Graba la entrada de microfono por el tiempo especificado
+    """
+    sd.default.samplerate = fs #frecuencia de muestreo
+    sd.default.channels = 1 #1 porque la entrada es una sola
+    
+    grabacion = sd.rec(frames = fs*duracion, blocking = True)
+    return grabacion
 #%%
 def constant(amplitud, duracion,  fs=44100):
     """
