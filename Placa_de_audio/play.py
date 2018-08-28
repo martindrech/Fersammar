@@ -73,6 +73,32 @@ def record(duracion, fs=44100):
     
     grabacion = sd.rec(frames = fs*duracion, blocking = True)
     return grabacion
+
+def playrec_delay(freq = 220, tiempo = 3,fs=44100):
+    """
+    mide el tiempo entre la salida y la entrada de playrec_tone
+    con salto distinto de 1 se puede acelerar la medicion pero se sobreestima un poco
+    """
+    a,b,c = playrec_tone(freq,tiempo)
+    det = True
+    i = 0
+    threshold = np.mean(np.abs(c[20000:-1])) 
+    while det:
+        if np.abs(c[2000+i]) >= threshold/3:#al principio hay un pico, por eso los 2000
+            det = False
+        else:
+            i = i+1
+    return (i+2000)/fs
+
+def frequency_response(points, freqstart = 100, freqend = 10000, duracion = 1):
+    """
+    Evalua la respuesta en frecuencia del conjunto salida y entrada de audio
+    """
+    response = np.zeros(points)
+    for i in range(points):
+        a, d, rec = playrec_tone(freqstart+i/points*(freqend-freqstart),duracion)
+        response[i] = np.mean(np.abs(rec)) 
+    return response
 #%%
 def constant(amplitud, duracion,  fs=44100):
     """
