@@ -4,6 +4,24 @@ import pylab as plt
 import time
 from scipy.signal import find_peaks
 from scipy import signal
+
+def generador_de_senhal(frecuencia, duracion, amplitud, funcion, fs=192000):
+    """
+    Genera una señal de forma seniodal o de rampa, con una dada frecuencia y duracion.
+    """
+    cantidad_de_periodos = duracion*frecuencia
+    puntos_por_periodo = int(fs/frecuencia)
+    puntos_totales = puntos_por_periodo*cantidad_de_periodos
+           
+    tiempo = np.linspace(0, duracion, puntos_totales)
+    if funcion=='sin':
+        data = amplitud*np.sin(2*np.pi*frecuencia*tiempo)
+    elif funcion=='rampa':
+        data = amplitud*signal.sawtooth(2*np.pi*frecuencia*tiempo)
+    else:
+        print("Input no válido. Introducir sin o rampa")
+        data = 0
+    return tiempo, data
  
 def play_tone(frecuencia, duracion, amplitud=1, fs=192000, wait=True):
     """
@@ -11,21 +29,13 @@ def play_tone(frecuencia, duracion, amplitud=1, fs=192000, wait=True):
     """
     sd.default.samplerate = fs #frecuencia de muestreo
     
-    #Estas 3 lineas siguientes se podrian reducir
-    cantidad_de_periodos = duracion*frecuencia
-    puntos_por_periodo = int(fs/frecuencia)
-    puntos_totales = puntos_por_periodo*cantidad_de_periodos
-           
-    tiempo = np.linspace(0, duracion, puntos_totales)
-    
-    data = amplitud*np.sin(2*np.pi*frecuencia*tiempo)
-       
+    tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'sin')   
     sd.play(data)
     
     if wait:
         time.sleep(duracion)
         
-    return puntos_totales
+    return data
 
 def test_play_tone():
     """
@@ -44,15 +54,9 @@ def playrec_tone(frecuencia, duracion, amplitud=0.1, fs=192000):
     sd.default.samplerate = fs #frecuencia de muestreo
     sd.default.channels = 2,2 #por las dos salidas de audio
     
-    cantidad_de_periodos = duracion*frecuencia
-    puntos_por_periodo = int(fs/frecuencia)
-    puntos_totales = puntos_por_periodo*cantidad_de_periodos
-           
-    tiempo = np.linspace(0, duracion, puntos_totales)
-    
-    data = amplitud*np.sin(2*np.pi*frecuencia*tiempo)
-       
+    tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'sin')      
     grabacion = sd.playrec(data, blocking=True)
+    
     return tiempo, data, grabacion
 
 def test_playrec_tone():
@@ -66,7 +70,7 @@ def test_playrec_tone():
         print(i)
     return grabacion
 
-def record(duracion, fs=44100):
+def record(duracion, fs=192000):
     """
     Graba la entrada de microfono por el tiempo especificado
     """
@@ -76,7 +80,7 @@ def record(duracion, fs=44100):
     grabacion = sd.rec(frames = fs*duracion, blocking = True)
     return grabacion
 
-def playrec_delay(freq = 220, tiempo = 3,fs=44100):
+def playrec_delay(freq = 220, tiempo = 3,fs=192000):
     """
     mide el tiempo entre la salida y la entrada de playrec_tone
     con salto distinto de 1 se puede acelerar la medicion pero se sobreestima un poco
@@ -98,33 +102,37 @@ def frequency_response(points, freqstart = 100, freqend = 10000, duracion = 1):
     """
     response = np.zeros(points)
     for i in range(points):
-        a, d, rec = playrec_tone(freqstart+i/points*(freqend-freqstart),duracion, amplitud = 0.1, fs = 192000)
+        a, d, rec = playrec_tone(freqstart+i/points*(freqend-freqstart),duracion, amplitud = 0.2, fs = 192000)
         response[i] = np.mean(np.abs(rec))
+    freq = np.linspace(freqstart, freqend, points)
     plt.figure()
-    plt.plot(np.linspace(freqstart, freqend, points), response, 'b.--')
+    plt.plot(freq, response, 'b.--')
     plt.xlabel('frecuencia (Hz)')
     plt.ylabel('Respuesta')
     plt.grid()
-    return response
+    return freq, response
 
-def playrec_sawtooth(frecuencia, duracion, amplitud=0.1, fs=192000):
+def playrec_sawtooth(frecuencia, duracion, amplitud=1, fs=192000):
     """
     Emite y graba una funcion rampa.
     """
     sd.default.samplerate = fs #frecuencia de muestreo
-    sd.default.channels = 1,2 #por las dos salidas de audio
+    sd.default.channels = 2,2 #por las dos salidas de audio
     
-    cantidad_de_periodos = duracion*frecuencia
-    puntos_por_periodo = int(fs/frecuencia)
-    puntos_totales = puntos_por_periodo*cantidad_de_periodos
-           
-    tiempo = np.linspace(0, duracion, puntos_totales)
-    
-    data = amplitud*signal.sawtooth(2 * np.pi * frecuencia * tiempo)
+    tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'rampa')   
     grabacion = sd.playrec(data, blocking=True)
+    
     return tiempo, data, grabacion
 
-
+def barrido_frecuencias_sawtooth():
+    """
+    Con el circuito armado, repetimos las mediciones para varias frecuencias.
+    """
+    frecuencias = np.arange(100,1000,100)
+    for f in frecuencias:
+        t, d, g = playrec_sawtooth(f, 5)
+        np.savetxt('datos_diodo_'+str(f)+'hz.txt', np.c_[t, d, -g[:,0], -g[:,1]])
+    
 #%%
 def find_index_of_nearest(array, value):
     """
