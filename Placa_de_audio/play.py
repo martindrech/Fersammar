@@ -2,6 +2,7 @@ import sounddevice as sd
 import numpy as np
 import pylab as plt
 import time
+from scipy.signal import find_peaks
  
 def play_tone(frecuencia, duracion, fs=44100, wait=True):
     """
@@ -35,7 +36,7 @@ def test_play_tone():
         time.sleep(1)
         print(i)
 
-def playrec_tone(frecuencia, duracion, fs=44100):
+def playrec_tone(frecuencia, duracion, amplitud=1, fs=44100):
     """
     Emite un tono y lo graba.
     """
@@ -48,7 +49,7 @@ def playrec_tone(frecuencia, duracion, fs=44100):
            
     tiempo = np.linspace(0, duracion, puntos_totales)
     
-    data = np.sin(2*np.pi*frecuencia*tiempo)
+    data = amplitud*np.sin(2*np.pi*frecuencia*tiempo)
        
     grabacion = sd.playrec(data, blocking=True)
     return tiempo, data, grabacion
@@ -92,13 +93,46 @@ def playrec_delay(freq = 220, tiempo = 3,fs=44100):
 
 def frequency_response(points, freqstart = 100, freqend = 10000, duracion = 1):
     """
-    Evalua la respuesta en frecuencia del conjunto salida y entrada de audio
+    Evalua la respuesta en frecuencia del conjunto salida y entrada de audio. Points es que tan denso es el barrido (un numero entero).
     """
     response = np.zeros(points)
     for i in range(points):
         a, d, rec = playrec_tone(freqstart+i/points*(freqend-freqstart),duracion)
         response[i] = np.mean(np.abs(rec)) 
+    plt.plot(np.linspace(freqstart, freqend, points), response, 'b.--')
+    plt.xlabel('frecuencia (Hz)')
+    plt.ylabel('Respuesta')
+    plt.grid()
     return response
+
+def find_index_of_nearest(array, value):
+    """
+    Funcion auxiliar que encuentra el indice del elemento mas cercano a cierto valor en un array
+    """
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
+
+def primera_amplitud_maxima_output(frecuencia, duracion, amplitud):
+    """
+    Emite un tono y busca el primer maximo a la salida despues del tiempo de delay.
+    """
+    delay = playrec_delay(frecuencia, tiempo = 3,fs=44100) #el delay se podria calcular una sola vez, no cada vez
+    tiempo, data, grabacion  = playrec_tone(frecuencia, duracion, amplitud, fs=44100)
+    grabacion = np.concatenate(grabacion, axis=0 ) #la grabacion es una array de arrays y para  buscar picos debe ser uno solo
+    peaks, _ = find_peaks(grabacion, height=np.max(grabacion)/4) #busca los picos por encima de 1/4     del maximo valor
+    indice_tiempo_delay = find_index_of_nearest(tiempo, delay) #busca el indice del tiempo mas  cercano al delay, para empezar a mirar a partir de ahi
+    indice_primer_pico = find_index_of_nearest(peaks, indice_tiempo_delay) #busca el primer pico despues   del tiempo de delay
+    primer_pico_maximo  = np.max(peaks[indice_primer_pico:indice_primer_pico+10])
+    return grabacion[primer_pico_maximo]
+
+def barrido_amplitudes(frecuencia, duracion, amplitudes= np.linspace(0.1,5,10)):
+    amplitudes_output = []
+    for a in amplitudes:
+        amplitudes_output.append(primera_amplitud_maxima_output(frecuencia, duracion, a))
+    return amplitudes_output
+
+
 #%%
 def constant(amplitud, duracion,  fs=44100):
     """
