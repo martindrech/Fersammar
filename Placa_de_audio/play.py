@@ -3,8 +3,9 @@ import numpy as np
 import pylab as plt
 import time
 from scipy.signal import find_peaks
+from scipy import signal
  
-def play_tone(frecuencia, duracion, fs=44100, wait=True):
+def play_tone(frecuencia, duracion, amplitud=1, fs=192000, wait=True):
     """
     Esta función tiene como output un tono de una cierta duración y frecuencia.
     """
@@ -17,7 +18,7 @@ def play_tone(frecuencia, duracion, fs=44100, wait=True):
            
     tiempo = np.linspace(0, duracion, puntos_totales)
     
-    data = np.sin(2*np.pi*frecuencia*tiempo)
+    data = amplitud*np.sin(2*np.pi*frecuencia*tiempo)
        
     sd.play(data)
     
@@ -36,12 +37,12 @@ def test_play_tone():
         time.sleep(1)
         print(i)
 
-def playrec_tone(frecuencia, duracion, amplitud=1, fs=44100):
+def playrec_tone(frecuencia, duracion, amplitud=0.1, fs=192000):
     """
     Emite un tono y lo graba.
     """
     sd.default.samplerate = fs #frecuencia de muestreo
-    sd.default.channels = 1,2 #por las dos salidas de audio
+    sd.default.channels = 2,2 #por las dos salidas de audio
     
     cantidad_de_periodos = duracion*frecuencia
     puntos_por_periodo = int(fs/frecuencia)
@@ -70,7 +71,7 @@ def record(duracion, fs=44100):
     Graba la entrada de microfono por el tiempo especificado
     """
     sd.default.samplerate = fs #frecuencia de muestreo
-    sd.default.channels = 1 #1 porque la entrada es una sola
+    sd.default.channels = 2 #1 porque la entrada es una sola
     
     grabacion = sd.rec(frames = fs*duracion, blocking = True)
     return grabacion
@@ -97,14 +98,34 @@ def frequency_response(points, freqstart = 100, freqend = 10000, duracion = 1):
     """
     response = np.zeros(points)
     for i in range(points):
-        a, d, rec = playrec_tone(freqstart+i/points*(freqend-freqstart),duracion)
-        response[i] = np.mean(np.abs(rec)) 
+        a, d, rec = playrec_tone(freqstart+i/points*(freqend-freqstart),duracion, amplitud = 0.1, fs = 192000)
+        response[i] = np.mean(np.abs(rec))
+    plt.figure()
     plt.plot(np.linspace(freqstart, freqend, points), response, 'b.--')
     plt.xlabel('frecuencia (Hz)')
     plt.ylabel('Respuesta')
     plt.grid()
     return response
 
+def playrec_sawtooth(frecuencia, duracion, amplitud=0.1, fs=192000):
+    """
+    Emite y graba una funcion rampa.
+    """
+    sd.default.samplerate = fs #frecuencia de muestreo
+    sd.default.channels = 1,2 #por las dos salidas de audio
+    
+    cantidad_de_periodos = duracion*frecuencia
+    puntos_por_periodo = int(fs/frecuencia)
+    puntos_totales = puntos_por_periodo*cantidad_de_periodos
+           
+    tiempo = np.linspace(0, duracion, puntos_totales)
+    
+    data = amplitud*signal.sawtooth(2 * np.pi * frecuencia * tiempo)
+    grabacion = sd.playrec(data, blocking=True)
+    return tiempo, data, grabacion
+
+
+#%%
 def find_index_of_nearest(array, value):
     """
     Funcion auxiliar que encuentra el indice del elemento mas cercano a cierto valor en un array
@@ -132,8 +153,6 @@ def barrido_amplitudes(frecuencia, duracion, amplitudes= np.linspace(0.1,5,10)):
         amplitudes_output.append(primera_amplitud_maxima_output(frecuencia, duracion, a))
     return amplitudes_output
 
-
-#%%
 def constant(amplitud, duracion,  fs=44100):
     """
     La placa de audio no está hecha para emitir una constante.
