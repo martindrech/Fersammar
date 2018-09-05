@@ -7,7 +7,7 @@ from scipy import signal
 
 def generador_de_senhal(frecuencia, duracion, amplitud, funcion, fs=192000):
     """
-    Genera una señal de forma seniodal o de rampa, con una dada frecuencia y duracion.
+    Genera una señal de forma seniodal, de rampa, con una dada frecuencia y duracion.
     """
     cantidad_de_periodos = duracion*frecuencia
     puntos_por_periodo = int(fs/frecuencia)
@@ -18,8 +18,10 @@ def generador_de_senhal(frecuencia, duracion, amplitud, funcion, fs=192000):
         data = amplitud*np.sin(2*np.pi*frecuencia*tiempo)
     elif funcion=='rampa':
         data = amplitud*signal.sawtooth(2*np.pi*frecuencia*tiempo)
+    elif funcion=='square':
+        data = amplitud*signal.square(2*np.pi*frecuencia*tiempo)
     else:
-        print("Input no válido. Introducir sin o rampa")
+        print("Input no válido. Introducir sin, rampa o square")
         data = 0
     return tiempo, data
  
@@ -132,6 +134,33 @@ def barrido_frecuencias_sawtooth():
     for f in frecuencias:
         t, d, g = playrec_sawtooth(f, 5)
         np.savetxt('datos_diodo_'+str(f)+'hz.txt', np.c_[t, d, -g[:,0], -g[:,1]])
+        
+def barrido_frecuencias_tone():
+    """
+    Con el circuito armado, repetimos las mediciones para varias frecuencias.
+    """
+    frecuencias = np.arange(100,1000,100)
+    for f in frecuencias:
+        t, d, g = playrec_tone(f, 2, amplitud=1)
+        np.savetxt('D:/Intrumentacion_fersammar/20180905/datos_diodo_seno_'+str(f)+'hz.txt', np.c_[t, d, -g[:,0], g[:,1]])
+
+def playrec_square(frecuencia,duracion,amplitud = 1, fs = 192000):
+    sd.default.samplerate = fs #frecuencia de muestreo
+    sd.default.channels = 2,2 #por las dos salidas de audio
+    tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'square')   
+    grabacion = sd.playrec(data, blocking=True)
+    return tiempo, data, grabacion
+
+
+def barrido_frecuencias_tone():
+    """
+    Con el circuito armado, repetimos las mediciones para varias frecuencias.
+    """
+    frecuencias = np.arange(100,1000,100)
+    for f in frecuencias:
+        t, d, g = playrec_square(f, 2, amplitud=1)
+        np.savetxt('D:/Intrumentacion_fersammar/20180905/datos_diodo_square_'+str(f)+'hz.txt', np.c_[t, d, -g[:,0], g[:,1]])
+
     
 #%%
 def find_index_of_nearest(array, value):
