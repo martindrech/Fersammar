@@ -17,16 +17,16 @@ def find_index_of_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
-
-data_100hz = np.loadtxt('datos_diodo_100hz.txt')
-data_200hz = np.loadtxt('datos_diodo_200hz.txt')
-data_300hz = np.loadtxt('datos_diodo_300hz.txt')
-data_400hz = np.loadtxt('datos_diodo_400hz.txt')
-data_500hz = np.loadtxt('datos_diodo_500hz.txt')
-data_600hz = np.loadtxt('datos_diodo_600hz.txt')
-data_700hz = np.loadtxt('datos_diodo_700hz.txt')
-data_800hz = np.loadtxt('datos_diodo_800hz.txt')
-data_900hz = np.loadtxt('datos_diodo_900hz.txt')
+dataDir = 'D:\Intrumentacion_fersammar/'
+data_100hz = np.loadtxt(dataDir + 'datos_diodo_100hz.txt')
+#data_200hz = np.loadtxt(dataDir + 'datos_diodo_200hz.txt')
+#data_300hz = np.loadtxt(dataDir + 'datos_diodo_300hz.txt')
+#data_400hz = np.loadtxt(dataDir + 'datos_diodo_400hz.txt')
+#data_500hz = np.loadtxt(dataDir + 'datos_diodo_500hz.txt')
+#data_600hz = np.loadtxt(dataDir + 'datos_diodo_600hz.txt')
+#data_700hz = np.loadtxt(dataDir + 'datos_diodo_700hz.txt')
+#data_800hz = np.loadtxt(dataDir + 'datos_diodo_800hz.txt')
+#data_900hz = np.loadtxt(dataDir + 'datos_diodo_900hz.txt')
 
 #%%
 
