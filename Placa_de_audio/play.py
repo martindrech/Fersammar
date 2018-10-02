@@ -98,14 +98,16 @@ def playrec_delay(freq = 220, tiempo = 3,fs=192000):
             i = i+1
     return (i+2000)/fs
 
-def frequency_response(points, freqstart = 100, freqend = 10000, duracion = 1):
+def frequency_response(points, freqstart = 100, freqend = 20000, duracion = 1):
     """
     Evalua la respuesta en frecuencia del conjunto salida y entrada de audio. Points es que tan denso es el barrido (un numero entero).
     """
     response = np.zeros(points)
     for i in range(points):
         a, d, rec = playrec_tone(freqstart+i/points*(freqend-freqstart),duracion, amplitud = 0.2, fs = 192000)
-        response[i] = np.mean(np.abs(rec))
+        response[i] = np.mean(np.abs(rec[:, 0]))
+        print(freqstart+i/points*(freqend-freqstart))
+    
     freq = np.linspace(freqstart, freqend, points)
     plt.figure()
     plt.plot(freq, response, 'b.--')
@@ -152,7 +154,7 @@ def playrec_square(frecuencia,duracion,amplitud = 1, fs = 192000):
     return tiempo, data, grabacion
 
 
-def barrido_frecuencias_tone():
+def barrido_frecuencias_square():
     """
     Con el circuito armado, repetimos las mediciones para varias frecuencias.
     """
