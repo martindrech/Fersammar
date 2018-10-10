@@ -5,7 +5,7 @@ import time
 from scipy.signal import find_peaks
 from scipy import signal
 
-def generador_de_senhal(frecuencia, duracion, amplitud, funcion, fs=192000):
+def generador_de_senhal(frecuencia, duracion, amplitud, funcion, fs=44100):
     """
     Genera una señal de forma seniodal, de rampa, con una dada frecuencia y duracion.
     """
@@ -25,14 +25,13 @@ def generador_de_senhal(frecuencia, duracion, amplitud, funcion, fs=192000):
         data = 0
     return tiempo, data
  
-def play_tone(frecuencia, duracion, amplitud=1, fs=192000, wait=True):
+def play_tone(frecuencia, duracion, amplitud=1, fs=44100, wait=True):
     """
     Esta función tiene como output un tono de una cierta duración y frecuencia.
     """
-    sd.default.samplerate = fs #frecuencia de muestreo
-    
-    tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'sin')   
-    sd.play(data)
+        
+    tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'sin',fs)   
+    sd.play(data, fs)
     
     if wait:
         time.sleep(duracion)
@@ -53,7 +52,7 @@ def playrec_tone(frecuencia, duracion, amplitud=0.1, fs=192000):
     """
     Emite un tono y lo graba.
     """
-    sd.default.samplerate = fs #frecuencia de muestreo
+    #sd.default.samplerate = fs #frecuencia de muestreo
     sd.default.channels = 2,2 #por las dos salidas de audio
     
     tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'sin')      
@@ -76,7 +75,7 @@ def record(duracion, fs=192000):
     """
     Graba la entrada de microfono por el tiempo especificado
     """
-    sd.default.samplerate = fs #frecuencia de muestreo
+    #sd.default.samplerate = fs #frecuencia de muestreo
     sd.default.channels = 2 #1 porque la entrada es una sola
     
     grabacion = sd.rec(frames = fs*duracion, blocking = True)
@@ -120,7 +119,7 @@ def playrec_sawtooth(frecuencia, duracion, amplitud=1, fs=192000):
     """
     Emite y graba una funcion rampa.
     """
-    sd.default.samplerate = fs #frecuencia de muestreo
+    #sd.default.samplerate = fs #frecuencia de muestreo
     sd.default.channels = 2,2 #por las dos salidas de audio
     
     tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'rampa')   
@@ -147,7 +146,7 @@ def barrido_frecuencias_tone():
         np.savetxt('D:/Intrumentacion_fersammar/20180905/datos_diodo_seno_'+str(f)+'hz.txt', np.c_[t, d, -g[:,0], g[:,1]])
 
 def playrec_square(frecuencia,duracion,amplitud = 1, fs = 192000):
-    sd.default.samplerate = fs #frecuencia de muestreo
+    #sd.default.samplerate = fs #frecuencia de muestreo
     sd.default.channels = 2,2 #por las dos salidas de audio
     tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'square')   
     grabacion = sd.playrec(data, blocking=True)
@@ -196,7 +195,7 @@ def constant(amplitud, duracion,  fs=44100):
     """
     La placa de audio no está hecha para emitir una constante.
     """
-    sd.default.samplerate = fs #frecuencia de muestreo
+    #sd.default.samplerate = fs #frecuencia de muestreo
     #x = np.sin(np.linspace(amplitud-0.01, amplitud+0.01, fs*duracion))
     #x = amplitud*np.ones(fs*duracion)+10
     tiempo = 5*np.linspace(0, duracion, 220000)
