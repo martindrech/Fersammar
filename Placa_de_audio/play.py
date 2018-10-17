@@ -17,7 +17,7 @@ def generador_de_senhal(frecuencia, duracion, amplitud, funcion, fs=44100):
     if funcion=='sin':
         data = amplitud*np.sin(2*np.pi*frecuencia*tiempo)
     elif funcion=='rampa':
-        data = amplitud*signal.sawtooth(2*np.pi*frecuencia*tiempo)
+        data = amplitud*signal.sawtooth(2*np.pi*frecuencia*tiempo,width = 0.5)
     elif funcion=='square':
         data = amplitud*signal.square(2*np.pi*frecuencia*tiempo)
     else:
@@ -115,7 +115,22 @@ def frequency_response(points, freqstart = 100, freqend = 20000, duracion = 1):
     plt.grid()
     return freq, response
 
-def playrec_sawtooth(frecuencia, duracion, amplitud=1, fs=192000):
+def play_sawtooth(frecuencia, duracion, amplitud=1, fs=44100,wait=False):
+    """
+    Emite y graba una funcion rampa.
+    """
+    #sd.default.samplerate = fs #frecuencia de muestreo
+    sd.default.channels = 2,2 #por las dos salidas de audio
+    
+    tiempo, data = generador_de_senhal(frecuencia, duracion, amplitud, 'rampa')   
+    sd.play(data)
+    if wait:
+        time.sleep(duracion)
+    
+    return tiempo, data
+
+
+def playrec_sawtooth(frecuencia, duracion, amplitud=1, fs=44100):
     """
     Emite y graba una funcion rampa.
     """
