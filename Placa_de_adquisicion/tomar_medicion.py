@@ -208,7 +208,7 @@ def measure_sample_time_1_channel(frec_de_rampa, frecuencia_de_muestreo, fs=4410
 medios = []
 errores=[]
 i=0
-while i<5:   
+while i<4:   
     time.sleep(1)
     with nidaqmx.Task() as write_task:
         write_task.ao_channels.add_ao_voltage_chan('Dev1/ao0', min_val=0, max_val=5)
@@ -219,10 +219,222 @@ while i<5:
         a = read_task.read(1024//len(read_task.channel_names))
         medios.append(np.mean(a))
         errores.append(np.std(a))
-        i=i+0.1
+    i=i+0.5
         #a0, a1 = np.array(a[0]), np.array(a[1])
         #plt.figure('plot de puntos ady')
         #plt.clf()
         #diferencias = np.diff(a0)
         #plt.plot(a)
         #plt.plot(a0)
+#%%
+def write_to_daq(voltage):
+    with nidaqmx.Task() as write_task:
+        write_task.ao_channels.add_ao_voltage_chan('Dev1/ao0', min_val=0, max_val=5)
+        write_task.write(voltage)
+    return 0
+
+def read_daq(sample_rate=1000,num_samples=1024):
+    medicion = []
+    with nidaqmx.Task() as read_task:
+        read_task.ai_channels.add_ai_voltage_chan('Dev1/ai1',terminal_config = nidaqmx.constants.TerminalConfiguration.RSE)
+        read_task.timing.cfg_samp_clk_timing(sample_rate) # seteo la frecuencia de muestreo
+        a = read_task.read(num_samples//len(read_task.channel_names))
+        medicion.append(np.mean(a))
+        return medicion
+'''   
+i=0
+while i<4:   
+    time.sleep(1)
+    write_to_daq(i)
+    m = read_daq()
+    i=i+0.5
+'''    
+
+        
+def loop_P(P,setpoint,duracion):
+    write_to_daq(0)
+    current_value = 0
+    start_time = time.time()
+    medicion, tiempo = [],[]
+    plt.figure()
+    plt.ion()
+    plt.grid()
+    loopcheck = True
+    while loopcheck:
+        m = float(np.array(read_daq()))
+        tiempo.append(time.time()-start_time)
+        medicion.append(m)
+        error = m-setpoint
+        write_to_daq(current_value-P*error)
+        current_value -= P*error
+        plt.plot(time.time()-start_time,m,'r.-')
+        plt.pause(0.1)
+        if (time.time()-start_time)>duracion:
+            loopcheck = False
+    return tiempo, medicion
+        
+def loop_PI(P,I,setpoint,duracion):
+    write_to_daq(0)
+    current_value = 0
+    start_time = time.time()
+    medicion, tiempo = [0],[0]
+    S = 0
+    plt.figure()
+    plt.ion()
+    plt.grid()
+    loopcheck = True
+    while loopcheck:
+        m = float(np.array(read_daq()))
+        tiempo.append(time.time()-start_time)
+        medicion.append(m)
+        error = m-setpoint
+        S =+ ((m+medicion[-2])/2)*(tiempo[-1]-tiempo[-2])
+        write_to_daq((abs(current_value-P*error-I*S)+(current_value-P*error-I*S))/2)
+        current_value -= P*error
+        plt.plot(time.time()-start_time,m,'r.-')
+        plt.pause(0.1)
+        if (time.time()-start_time)>duracion:
+            loopcheck = False
+    return tiempo, medicion
+
+#def loop_PID(P,I,D,setpoint,duracion): #vieja
+#    write_to_daq(0)
+#    current_value = 0
+#    start_time = time.time()
+#    medicion, tiempo = [0],[0]
+#    S = 0
+#    plt.figure()
+#    plt.ion()
+#    plt.grid()
+#    loopcheck = True
+#    while loopcheck:
+#        measured_value = float(np.array(read_daq(sample_rate=10000)))
+#        tiempo.append(time.time()-start_time)
+#        medicion.append(m)
+#        error = m-setpoint
+#        S =+ ((m+medicion[-2])/2)*(tiempo[-1]-tiempo[-2])
+#        derivada = (medicion[-1]-medicion[-2])/(tiempo[-2]-tiempo[-1])
+#        try:
+#            write_to_daq(current_value-P*error-I*S-D*derivada)
+#        except:
+#            write_to_daq((np.sign(current_value-P*error-I*S-D*derivada)+1)*2.5)
+#        current_value -= P*error
+#        plt.plot(time.time()-start_time,m,'r.-')
+#        plt.pause(0.1)
+#        if (time.time()-start_time)>duracion:
+#            loopcheck = False
+#    return tiempo, medicion  
+
+def start_loop_PID(P,I,D,setpoint,duracion):
+    write_to_daq(0)
+    PID = PID_loop(P, I, D, setpoint)
+    start_time = time.time()
+    
+    plt.figure()
+    plt.ion()
+    plt.grid()
+    loopcheck = True
+    
+    while loopcheck:
+        measured_value = float(np.array(read_daq(sample_rate=10000)))
+        PID.add_medicion(measured_value, time.time()-start_time)
+        PID.calc_parameters(measured_value)
+        
+        new_actuator_value = pid.calculate(signal)
+        
+        try:
+            write_to_daq(PID.value_to_write)
+        except:
+            write_to_daq((np.sign(PID.value_to_write)+1)*2.5)
+            
+        PID.update_current_value()
+        plt.plot(time.time()-start_time, measured_value, 'r.-')
+        plt.pause(0.1)
+        if (time.time()-start_time)>duracion:
+            loopcheck = False
+            
+    return PID.tiempo, PID.medicion              
+
+class PID_loop:
+    def __init__(self, P, I, D,setpoint):
+        self.P = P
+        self.D = D
+        self.I = I
+        self.setpoint = setpoint
+        
+        self.current_value = 0
+        self.S = 0
+        self.derivada = 0
+        self.error = 0
+        self.value_to_write = 0
+        
+        
+        self.medicion = [0]
+        self.tiempo = [0]
+        
+            
+    def add_medicion(self, m, t):
+        self.medicion.append(m)
+        self.tiempo.append(t)
+    
+    def calc_parameters(self, measured_value):
+        self.error = measured_value - self.setpoint
+        self.S += ((measured_value+self.medicion[-2])/2)*(self.tiempo[-1]-self.tiempo[-2]) 
+        self.derivada = (self.medicion[-1]-self.medicion[-2])/(self.tiempo[-2]-self.tiempo[-1])
+        self.value_to_write = self.current_value-self.P*self.error-self.I*self.S-self.D*self.derivada 
+        
+    def update_current_value(self):
+        self.current_value -= self.P*self.error
+        
+    def calculate_new(self, m, t):
+        
+        
+class LazoPID:
+    
+    def __init__(self, setpoint, p, i, d):
+        #
+        
+    def __call__(self, signal):
+        self.i_value += signal
+        return self.p*(signal - self.setpoint)
+        
+    
+    
+def create_pid(setpoint, p, i, d):
+    
+    def _internal():
+        
+        while True:
+            # <- señal
+            # -> correccion
+            signal = yield correction
+            correction = p*(signal - setpoint)
+    
+    gen = internal()
+    gen.send(None)
+    return gen
+
+
+lazo = LazoPID(3, 2, 6, 3)
+
+while True:
+    
+    daq.write(lazo(daq.read()))
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
