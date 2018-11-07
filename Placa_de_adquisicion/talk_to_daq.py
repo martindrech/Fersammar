@@ -31,13 +31,27 @@ def read_daq(sample_rate=1000,num_samples=1024):
         return medicion
     
 def continous_measurement():
-    plt.figure()
-    plt.grid()
-    plt.ion()
+    #plt.figure()
+    #plt.grid()
+    #plt.ion()
     start_time = time.time()
-    
-    while True:
-        value = read_daq(sample_rate=40000)
-        plt.plot(time.time()-start_time, value, '.b')
+
+    value = read_daq(sample_rate=40000)
+    fig, ax = plt.subplots(1, 1 )
+    line, = ax.plot(time.time()-start_time, value, '.b')    
+
+    ax.set_xlim(0, 10)
+    #times = [time.time()-start_time]
+    times = [0]
+    values = [value]
+    while plt.fignum_exists(fig.number):
+        values.append(read_daq(sample_rate=40000))
+        times.append(times[-1] + 1)
+        #times.append(time.time()-start_time)
+        line.set_data(times, values)
+        ax.set_ylim(min(np.array(values)), max(np.array((values))))
+        ax.set_xlim(times[-1]-10, times[-1])
+        fig.canvas.draw()
+        fig.canvas.flush_events()
         plt.pause(0.05)
         
