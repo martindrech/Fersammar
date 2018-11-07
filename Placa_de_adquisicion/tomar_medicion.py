@@ -14,7 +14,7 @@ import nidaqmx.system
 system = nidaqmx.system.System.local()
 system.driver_version
 import sounddevice as sd
-from Placa_de_audio.play import generador_de_senhal, playrec_tone, play_tone, play_sawtooth
+#from Placa_de_audio.play import generador_de_senhal, playrec_tone, play_tone, play_sawtooth
 from scipy.signal import find_peaks
 #%%
 for device in system.devices:
@@ -388,7 +388,7 @@ class PID_loop:
         
     def calculate_new(self, m, t):
         
-        
+"""
 class LazoPID:
     
     def __init__(self, setpoint, p, i, d):
@@ -421,7 +421,7 @@ while True:
     
     daq.write(lazo(daq.read()))
     
-        
+"""       
         
         
         
