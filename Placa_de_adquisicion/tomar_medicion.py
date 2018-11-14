@@ -89,7 +89,18 @@ dt = ( (1/200)/(idx[1]-idx[0]) )
 def find_freq(dt, x, should_I_plot = False):
     """
     Transforma fourier y devuelve el maximo de la transformada
+    
+    Parameters
+    ----------
+    dt : arreglo de tiempos
+    x : arreglo de valores a transofrmar como funcion de dt
+    should_I_plot : variable logica, si es True plotea la transformada
+    
+    Returns
+    -------
+    freq : valor de frecuencia donde ocurre el maximo de la transormada
     """
+    
     x=np.asarray(x)
     #dt = t[1]-t[0]
     f = np.fft.fft(x)
@@ -101,26 +112,11 @@ def find_freq(dt, x, should_I_plot = False):
         plt.figure('fft')
         plt.plot(freqs, np.abs(f), 'o')
         plt.show()
-
-    return freqs[np.argmax(np.abs(f[1:]))+1]
-
-def barrido_frecuencias(tiempo, f0, fN, df):
-    medicion_salida = []
-    frecuencias = np.arange(f0, fN, df)
-    #frecuencias = [6000]
-    for f in frecuencias:
-        print(f)
-        play_tone(f, tiempo,fs=44100, amplitud=1, wait=False)
-        time.sleep(1)
-        data = task.read(512)[0]
-        data = data - np.mean(data)
-        plt.figure('data')
-        plt.plot(data)
-        medicion_salida.append(find_freq(12.82e-05, data, should_I_plot = True))
-        #tiempo.append(time.time())
-        #time.sleep(0.2)
-        sd.stop()
         
+    freq = freqs[np.argmax(np.abs(f[1:]))+1]
+    return freq
+
+s
     return frecuencias, medicion_salida
 
         
