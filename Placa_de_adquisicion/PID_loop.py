@@ -12,9 +12,9 @@ import time
 
 
 
-def start_loop_PID(P,I,D,setpoint,duracion):
+def start_loop_PID(P,I,D,setpoint,duracion,buffer=False, buf_size=5):
     write_to_daq(0)
-    PID = PID_loop(P, I, D, setpoint)
+    PID = PID_loop(P, I, D, setpoint,buffer, buf_size)
     start_time = time.time()
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (12, 6))
@@ -49,7 +49,7 @@ def start_loop_PID(P,I,D,setpoint,duracion):
     return PID.tiempo, PID.medicion, PID.control_values            
 
 class PID_loop:
-    def __init__(self, P, I, D,setpoint):
+    def __init__(self, P, I, D,setpoint, buffer=True, buf_size=5):
         self.P = P
         self.D = D
         self.I = I
@@ -57,6 +57,7 @@ class PID_loop:
         
         self.current_value = 0
         self.S = 0
+        self.suma_parcial = list(np.zeros(buf_size))
         self.derivada = 0
         self.error = 0
         self.value_to_write = 0
@@ -71,10 +72,15 @@ class PID_loop:
         self.tiempo.append(t)
         
     
-    def calc_parameters(self, measured_value):
+    def calc_parameters(self, measured_value, buffer=False):
         self.error = measured_value - self.setpoint
-        self.S += ((measured_value+self.medicion[-2])/2)*(self.tiempo[-1]-self.tiempo[-2]) 
-        self.derivada = (self.medicion[-1]-self.medicion[-2])/(self.tiempo[-2]-self.tiempo[-1])
+        if buffer==False:
+            self.S += ((self.error+self.medicion[-2]-self.setpoint)/2)*(self.tiempo[-1]-self.tiempo[-2])
+        else:
+            self.suma_parcial.append(((self.error+self.medicion[-2]-self.setpoint)/2)*(self.tiempo[-1]-self.tiempo[-2]))
+            self.suma_parcial.pop(0)
+            self.S = np.sum(self.suma_parcial)
+        self.derivada = (self.medicion[-1]-self.medicion[-2])/(self.tiempo[-1]-self.tiempo[-2])
         self.value_to_write = self.current_value-self.P*self.error-self.I*self.S-self.D*self.derivada 
         self.control_values.append(self.value_to_write)
         
@@ -82,14 +88,58 @@ class PID_loop:
         self.current_value -= self.P*self.error
  
 #%% k ultimate calculation
-kp = 0.5
+kp = 0.06
 ki = 0.05
-kd = 0.1
-setp = 3
-t, m, c = start_loop_PID(kp, ki, kd, setp, 10)
-filename = 'D:\\Intrumentacion_fersammar\\20181107\\pid_sin_ruido_%s_%s_%s_%s_caja_abierta_mas_.5Hz_perturbacion.npy' % (kp, ki, kd, setp)
+setp = 8
+for kd in np.linspace(0, 0.05, 21):
+    t, m, c = start_loop_PID(kp, ki, 0, setp, 10)
+    filename = 'D:\\Intrumentacion_fersammar\\20181114\\pid_sin_ruido_%s_%s_%s_%s_caja_abierta_barrido_d.npy' % (kp, ki, kd, setp)
+    np.save(filename, [t, m, c])
+    print(kd)
+
+
 #%%
-np.save(filename, [t, m, c])
+plt.figure()
+kps = np.linspace(0, 0.2, 20)
+for kp in kps:
+    filename = 'D:\\Intrumentacion_fersammar\\20181114\\pid_sin_ruido_%s_%s_%s_%s_caja_abierta_barrido_p.npy' % (kp, ki, kd, setp)
+    t, m, c = np.load(filename)
+    plt.plot(t, m, label = '%.2f' % (kp) )
+plt.legend()
+#%%
+plt.figure()
+kis = np.linspace(0, 0.1, 10)
+for ki in kis:
+    filename = 'D:\\Intrumentacion_fersammar\\20181114\\pid_sin_ruido_%s_%s_%s_%s_caja_abierta_barrido_I_sinbuffer.npy' % (kp, ki, kd, setp)
+    t, m, c = np.load(filename)
+    plt.plot(t, m, label = '%.2f' % (ki) )
+plt.legend()
+#%%
+plt.figure()
+kds = np.linspace(0, 0.05, 21)[:3]
+for kd in kds:
+    filename = 'D:\\Intrumentacion_fersammar\\20181114\\pid_sin_ruido_%s_%s_%s_%s_caja_abierta_barrido_d.npy' % (kp, ki, kd, setp)
+    t, m, c = np.load(filename)
+    plt.plot(t, m, label = '%.3f' % (kd) )
+plt.legend()
+
+#%%
+#ya elegidos kp,ki,kd tomamos con el buffer
+kp = 0.06
+ki = 0.05
+kd = 0.003
+setp = 8
+for N in range(1,10):
+    t, m, c = start_loop_PID(kp, ki, kd, setp, 10,buffer=True, buf_size=N)
+    filename = 'D:\\Intrumentacion_fersammar\\20181114\\pid_sin_ruido_%s_%s_%s_%s_caja_abierta_conbuffer_%s.npy' % (kp, ki, kd, setp, N)
+    np.save(filename, [t, m, c])
+#%%
+
+frec_ruido = 100
+
+t, m, c = start_loop_PID(kp, ki, kd, setp, 10,buffer=False)
+filename = 'D:\\Intrumentacion_fersammar\\20181114\\pid_%s_%s_%s_%s_caja_abierta_conruido_%s_mHz_mastenue.npy' % (kp, ki, kd, setp, frec_ruido)
+np.save(filename, [t, m, c])    
 
 #%%
 ku = 0.92
@@ -99,3 +149,10 @@ ki = 2*kp/Tu
 kd = kp*Tu/8
 t, m = start_loop_PID(kp, ki, kd, 4, 30)
 
+#%% medicion larga
+kp = 0.06
+ki = 0.05
+kd = 0 
+t, m, c = start_loop_PID(kp, ki, kd, setp, 1800)
+filename = 'D:\\Intrumentacion_fersammar\\20181114\\pid_sin_ruido_%s_%s_%s_%s_caja_abierta_med_larga.npy' % (kp, ki, kd, setp)
+np.save(filename, [t, m, c])
