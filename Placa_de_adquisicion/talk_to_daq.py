@@ -22,6 +22,20 @@ def write_to_daq(voltage):
     return 0
 
 def read_daq(sample_rate=1000,num_samples=1024):
+    """
+    Obtiene la medicion tomada con el SensorDAQ, para cierta frecuencia de 
+    adquisicion y numero de muestras.
+    
+     Parameters
+    ----------
+    sample_rate :frecuencia de sampleo (en sampleos por segundo)
+    num_samples : numero de sampleos. Admite hasta 1024 si se utiliza un solo canal. Si se usan n canales admite hasta 1024/n. 
+    
+    Returns
+    -------
+    medicion : arreglo de valores medidos
+    
+    """
     medicion = []
     with nidaqmx.Task() as read_task:
         read_task.ai_channels.add_ai_voltage_chan('Dev1/ai1',terminal_config = nidaqmx.constants.TerminalConfiguration.RSE)
