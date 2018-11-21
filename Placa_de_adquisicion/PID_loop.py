@@ -73,6 +73,17 @@ class PID_loop:
         
     
     def calc_parameters(self, measured_value, buffer=False):
+            """
+    Calcula la integral y la derivada del PID y devuelve el proximo valor a enviar.
+    Parameters
+    ----------
+    measured_value : Ultimo valor medido por el fotodiodo
+    buffer : Si la integral acarca todo el tiempo desde el inicio, o solo un determinado                buffer
+    
+    Returns
+    -------
+    value_to_write : Proximo valor a enviar al led
+    """
         self.error = measured_value - self.setpoint
         if buffer==False:
             self.S += ((self.error+self.medicion[-2]-self.setpoint)/2)*(self.tiempo[-1]-self.tiempo[-2])
