@@ -67,7 +67,7 @@ plt.ylabel('voltaje (V)')
 
 file = 'pid_0.06_0.05_0.003_8_caja_abierta_conruido_500_mHz_mastenue.npy'
 t, m, c = np.load(path_nov_14+file)
-plt.plot(t, m)
+plt.plot(t, m, '.--')
 plt.grid()
 #plt.legend()
 plt.xlabel('tiempo (s)')
