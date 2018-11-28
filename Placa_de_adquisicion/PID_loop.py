@@ -146,10 +146,10 @@ for N in range(1,10):
     np.save(filename, [t, m, c])
 #%%
 
-frec_ruido = 100
+frec_ruido = 5
 
 t, m, c = start_loop_PID(kp, ki, kd, setp, 10,buffer=False)
-filename = 'D:\\Intrumentacion_fersammar\\20181114\\pid_%s_%s_%s_%s_caja_abierta_conruido_%s_mHz_mastenue.npy' % (kp, ki, kd, setp, frec_ruido)
+filename = 'D:\\Intrumentacion_fersammar\\20181114\\pid_%s_%s_%s_%s_caja_abierta_conruido_%s_Hz_mastenue.npy' % (kp, ki, kd, setp, frec_ruido)
 np.save(filename, [t, m, c])    
 
 #%%
